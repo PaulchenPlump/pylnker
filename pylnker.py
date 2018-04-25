@@ -830,7 +830,7 @@ class Pylnker(object):
         # Creation time
         file_droid_time = ''.join(fields)
         timestamp = int((file_droid_time[13:16] + file_droid_time[8:12] + file_droid_time[0:8]), 16)
-        creation = datetime.utcfromtimestamp((timestamp - 0x01b21dd213814000L) * 100 / 1e9)
+        creation = datetime.utcfromtimestamp((timestamp - 0x01b21dd213814000) * 100 / 1e9)
         tdb["Creation"] = creation.strftime("%Y-%m-%d %H:%M:%S.%f")
 
         # File Droid Birth
