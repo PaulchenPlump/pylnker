@@ -316,12 +316,12 @@ class Pylnker(object):
     def assert_lnk_signature(self):
         self.lnk_obj.seek(0)
         sig = self.lnk_obj.read(4)
-        if sig != 'L\x00\x00\x00':
+        if sig != b'L\x00\x00\x00':
             log.error("This is not a .lnk file.")
             return False
 
         guid = self.lnk_obj.read(16)
-        if guid != '\x01\x14\x02\x00\x00\x00\x00\x00\xc0\x00\x00\x00\x00\x00\x00F':
+        if guid != b'\x01\x14\x02\x00\x00\x00\x00\x00\xc0\x00\x00\x00\x00\x00\x00F':
             log.error("Cannot read this kind of .lnk file.")
             return False
 
@@ -330,7 +330,7 @@ class Pylnker(object):
     # read COUNT bytes at LOC and unpack into ascii
     def read_unpack_ascii(self, loc, count):
         self.lnk_obj.seek(loc)
-        return unpack("{}s".format(count), self.lnk_obj.read(count))[0].replace("\x00", "")
+        return unpack("{}s".format(count), self.lnk_obj.read(count))[0].replace(b"\x00", b"")
 
     # read COUNT bytes at LOC and unpack into binary
     def read_unpack_bin(self, loc, count):
@@ -338,25 +338,33 @@ class Pylnker(object):
         raw = self.lnk_obj.read(count)
         result = ""
         for b in raw:
-            result += ("{0:08b}".format(ord(b)))[::-1]
+            result += ("{0:08b}".format(b))[::-1]
 
         return result
 
     # read COUNT bytes at LOC
     def read_unpack(self, loc, count):
+
+        # jump to the specified location
         self.lnk_obj.seek(loc)
-        return hexlify(self.lnk_obj.read(count))
+
+        raw = self.lnk_obj.read(count)
+        result = ""
+
+        for b in raw:
+            result += format(b,'x').zfill(2)
+
+        return(result)
 
     # Read a null terminated string from the specified location.
     def read_null_term(self, loc):
         self.lnk_obj.seek(loc)
         b = self.lnk_obj.read(1)
 
-        result = ""
-        while b != "\x00":
-            result += str(b)
+        result = u""
+        while b != b"\x00":
+            result += str(b.decode("cp1250"))
             b = self.lnk_obj.read(1)
-
         return result
 
     def add_info(self, loc):
@@ -370,7 +378,7 @@ class Pylnker(object):
         count_characters = unpack("h", self.lnk_obj.read(2))[0]
         length = count_characters * 2
         if length != 0:
-            tmp_string = unpack("{}s".format(length), self.lnk_obj.read(length))[0].replace("\x00", "")
+            tmp_string = unpack("{}s".format(length), self.lnk_obj.read(length))[0].replace(b"\x00", b"")
             now_loc = self.lnk_obj.tell()
             return tmp_string, now_loc
         else:
@@ -854,17 +862,17 @@ class Pylnker(object):
         # Find ExtraDataBlock's using their signatures documented by
         # https://winprotocoldoc.blob.core.windows.net/productionwindowsarchives/MS-SHLLINK/[MS-SHLLINK]-131114.pdf
         # Sections 2.5.x (BlockSignature)
-        console_data_block_offset = haystack.find("\x02\x00\x00\xA0")
-        console_fe_data_block_offset = haystack.find("\x04\x00\x00\xA0")
-        darwin_data_block_offset = haystack.find("\x06\x00\x00\xA0")
-        environment_variable_data_block_offset = haystack.find("\x01\x00\x00\xA0")
-        icon_environment_data_block_offset = haystack.find("\x07\x00\x00\xA0")
-        known_folder_data_block_offset = haystack.find("\x0B\x00\x00\xA0")
-        property_store_data_block_offset = haystack.find("\x09\x00\x00\xA0")
-        shim_data_block_offset = haystack.find("\x08\x00\x00\xA0")
-        special_folder_data_block_offset = haystack.find("\x05\x00\x00\xA0")
-        tracker_data_block_offset = haystack.find("\x03\x00\x00\xA0")
-        vista_and_above_id_list_data_block_offset = haystack.find("\x0C\x00\x00\xA0")
+        console_data_block_offset = haystack.find(b"\x02\x00\x00\xA0")
+        console_fe_data_block_offset = haystack.find(b"\x04\x00\x00\xA0")
+        darwin_data_block_offset = haystack.find(b"\x06\x00\x00\xA0")
+        environment_variable_data_block_offset = haystack.find(b"\x01\x00\x00\xA0")
+        icon_environment_data_block_offset = haystack.find(b"\x07\x00\x00\xA0")
+        known_folder_data_block_offset = haystack.find(b"\x0B\x00\x00\xA0")
+        property_store_data_block_offset = haystack.find(b"\x09\x00\x00\xA0")
+        shim_data_block_offset = haystack.find(b"\x08\x00\x00\xA0")
+        special_folder_data_block_offset = haystack.find(b"\x05\x00\x00\xA0")
+        tracker_data_block_offset = haystack.find(b"\x03\x00\x00\xA0")
+        vista_and_above_id_list_data_block_offset = haystack.find(b"\x0C\x00\x00\xA0")
 
         if console_data_block_offset > 0:
             log.info("Found ConsoleDataBlock signature, report this hash if possible.")
@@ -932,7 +940,7 @@ class Pylnker(object):
         # Verify the end of the lnk, check for extra data
         self.lnk_obj.seek(self.end_offset)
         end_block = unpack("4s", self.lnk_obj.read(4))[0]
-        if end_block == "\x00\x00\x00\x00":
+        if end_block == b"\x00\x00\x00\x00":
             self.end_offset += 4
             self.lnk_obj.seek(0, 2)
             file_end = self.lnk_obj.tell()
